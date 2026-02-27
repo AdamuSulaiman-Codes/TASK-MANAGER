@@ -6,11 +6,12 @@ type props = {
     element: ReactElement
 }
 type RootState = {
-  token: string | null;
+  token: {
+    token: string | null
+  }
 };
-
 const PublicRoute = ({ element } : props) => {
-  const token = useSelector((state : RootState) => state.token);
+  const token = useSelector((state : RootState) => state.token.token);
 
   if (token) {
     return <Navigate to="/home" replace />;

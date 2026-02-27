@@ -4,6 +4,7 @@ import SignUpPage from "../Auth/SignUpPage";
 import PublicRoute from "./PublicRoute";
 import ProtectedRoute from "./ProtectedRoute";
 import HomePage from "../Pages/HomePage";
+import DashBoardPage from "../Pages/DashBoardPage";
 
 export const router = createBrowserRouter([
     {
@@ -27,5 +28,11 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute element={<HomePage />}/>
     ),
+    children: [
+        {
+            path: "",
+            element: <DashBoardPage/>,
+        }
+    ]
   },
 ])

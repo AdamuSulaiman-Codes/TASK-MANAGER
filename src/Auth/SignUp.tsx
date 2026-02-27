@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { signUp } from "./authFunctions";
 import { useDispatch } from "react-redux";
 import { tokenActions } from "../Store/TokenSlice";
+import { userActions } from "../Store/UserSlice";
 
 const SignUp = () => {
   const [userName, setUserName] = useState<string>("");
@@ -18,15 +19,13 @@ const SignUp = () => {
       return;
     }
 
-    const token = await signUp({userName, email, password})
+    const data = await signUp({userName, email, password})
 
-    dispatch(tokenActions.onLogin(token));
+    dispatch(tokenActions.onLogin(data.accessToken));
+    dispatch(userActions.onLogin(data.user));
 
-    console.log({
-      userName,
-      email,
-      password,
-    });
+    console.log(data.user);
+    
 
     // Optional reset
     setUserName("");

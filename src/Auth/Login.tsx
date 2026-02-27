@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router";
 import { tokenActions } from "../Store/TokenSlice";
 import { loginUser } from "./authFunctions";
+import { userActions } from "../Store/UserSlice";
 
 const Login = () => {
   const [userName, setUserName] = useState<string>("");
@@ -18,21 +19,19 @@ const Login = () => {
       return;
     }
 
-    const token = await loginUser({userName, password});
+    const data = await loginUser({userName, password});
 
-    dispatch(tokenActions.onLogin(token))
+    dispatch(tokenActions.onLogin(data.accessToken))
+    dispatch(userActions.onLogin(data.user))
 
-    console.log({
-      userName,
-      password,
-    });
+    console.log(data.accessToken);
+    console.log(data.user);
 
     setUserName("");
     setPassword("");
   };
+
   function navigateTOCreateAccount(){
-    console.log("clicked");
-    
     navigate("/sign-up");
   }
 

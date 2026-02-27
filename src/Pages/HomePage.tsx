@@ -1,9 +1,14 @@
+import { Outlet } from "react-router";
+import NavBar from "./NavBar"
 
 
 function HomePage() {
   return (
-    <div>HomePage</div>
+    <div>
+        <NavBar/>
+        <Outlet/>
+    </div>
   )
 }
 
-export default HomePage
+export default HomePage;

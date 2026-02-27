@@ -7,11 +7,13 @@ type props = {
 }
 
 type RootState = {
-  token: string | null;
+  token: {
+    token: string | null
+  }
 };
 
 const ProtectedRoute = ({element}: props) => {
-  const token = useSelector((state : RootState) => state.token);
+  const token = useSelector((state : RootState) => state.token.token);
 
   if (!token) {
     return <Navigate to="/log-in" replace />;

@@ -10,9 +10,11 @@ const tokenSlice = createSlice({
     initialState,
     reducers:{
         onLogin(state, action){
-            localStorage.setItem("token", action.payload.token);
+            state.token = action.payload;
+            localStorage.setItem("token", action.payload);
         },
-        onLogOut(state, action){
+        onLogOut(state){
+            state.token = null;
             localStorage.removeItem("token");
         }
     }

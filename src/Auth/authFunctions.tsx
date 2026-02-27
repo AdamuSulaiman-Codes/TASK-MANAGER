@@ -1,5 +1,10 @@
 import type { User, LoginRequest }  from "./authData"
 
+export type AuthResponse = {
+  accessToken: string;
+  user: User;
+};
+
 export async function loginUser(loginUser : LoginRequest) {
     const response = await fetch("http://localhost:8080/api/auth/log-in", {
         method: "POST",
@@ -12,8 +17,8 @@ export async function loginUser(loginUser : LoginRequest) {
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
-
-    return response.json();
+    const data : AuthResponse = await response.json();
+    return data;
 }
 export async function signUp(user : User) {
      const response = await fetch("http://localhost:8080/api/auth/sign-up", {
@@ -28,5 +33,6 @@ export async function signUp(user : User) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
+    const data : AuthResponse = await response.json();
+    return data;
 }
