@@ -1,7 +1,8 @@
 import { Bell, Settings} from "lucide-react";
 import React from "react";
 import type { User } from "../Auth/authData";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { tokenActions } from "../Store/TokenSlice";
 
 
 type RootState = {
@@ -12,10 +13,12 @@ type RootState = {
 
 const NavBar: React.FC = () => {
   const user = useSelector((state : RootState) => state.user.user);
+  const dispatch = useDispatch();
+
+  function handleLogout() {
+    dispatch(tokenActions.onLogOut());
+}
   console.log(user);
-  
-
-
   return (
     <nav className="w-full bg-gray-100 border-b border-gray-200 px-6 py-3 flex items-center justify-around">
       
@@ -61,11 +64,12 @@ const NavBar: React.FC = () => {
             <p className="text-xs text-gray-500">Pro Plan</p>
           </div>
 
-          <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center text-white font-semibold">
+          <div
+            onClick={handleLogout}
+            className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center text-white font-semibold">
             {user?.userName.slice(0,3)}
           </div>
         </div>
-
       </div>
     </nav>
   );

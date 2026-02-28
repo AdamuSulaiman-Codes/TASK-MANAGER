@@ -1,4 +1,14 @@
 import { FiSearch, FiPlus, FiFilter, FiCheckCircle, FiClock, FiCircle, FiLayers } from "react-icons/fi";
+import type { User } from "../Auth/authData";
+import { useDispatch, useSelector } from "react-redux";
+import { getUserTask, type Priority, type Status } from "./backendFunctions";
+import { useQuery } from "@tanstack/react-query";
+import { toolBarActions } from "../Store/ToolBarSlice";
+import { modalActions } from "../Store/ModalSlice";
+import Modal from "../assets/Modal";
+import AddTask from "../Components/AddTask";
+import { tokenActions } from "../Store/TokenSlice";
+import { useEffect } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -6,26 +16,25 @@ export type TaskStatus = "COMPLETED" | "PENDING" | "NOT_STARTED";
 export type TaskPriority = "HIGH" | "MEDIUM" | "LOW";
 
 export interface TaskCardProps {
-  id: string;
-  title: string;
-  description: string;
-  priority: TaskPriority;
-  status: TaskStatus;
-  dueDate: string;
-  onStart?: (id: string) => void;
-  onComplete?: (id: string) => void;
-  onReopen?: (id: string) => void;
-  onEdit?: (id: string) => void;
-  onDelete?: (id: string) => void;
+  task: Task;
+  onStart?: (id: number) => void;
+  onComplete?: (id: number) => void;
+  onReopen?: (id: number) => void;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
 }
 
 // ─── Summary Cards ─────────────────────────────────────────────────────────────
+type DashboardSummaryProps = {
+    userTasks: Task[],
+}
 
-const DashboardSummary: React.FC = () => {
-  const totalTasks = 6;
-  const inProgress = 2;
-  const notStarted = 3;
-  const completed = 1;
+const DashboardSummary: React.FC<DashboardSummaryProps> = ({ userTasks }) => {
+  const totalTasks = userTasks.length;
+  const inProgress = userTasks.filter(task => task.status == "PENDING").length;
+  const notStarted = userTasks.filter(task => task.status == "NOT_STARTED").length;
+  const completed = userTasks.filter(task => task.status == "COMPLETED").length;
+
 
   const cards = [
     {
@@ -37,7 +46,7 @@ const DashboardSummary: React.FC = () => {
       border: "border-slate-200",
     },
     {
-      label: "In Progress",
+      label: "Pending",
       value: inProgress,
       icon: <FiClock size={20} />,
       color: "text-amber-600",
@@ -88,10 +97,50 @@ const DashboardSummary: React.FC = () => {
     </div>
   );
 };
+type ToolBarRootState = {
+  toolbar: {
+    searchTerm: string;
+    statusTerm: string;
+    priorityTerm: string;
+    selectedDate: string;
+  }
+};
+
+
 
 // ─── Toolbar ───────────────────────────────────────────────────────────────────
-
 const TaskToolbar: React.FC = () => {
+  const searchTerm = useSelector((state: ToolBarRootState) => state.toolbar.searchTerm);
+  const statusTerm = useSelector((state: ToolBarRootState) => state.toolbar.statusTerm);
+  const priorityTerm = useSelector((state: ToolBarRootState) => state.toolbar.priorityTerm);
+  const selectedDate = useSelector((state: ToolBarRootState) => state.toolbar.selectedDate);
+
+
+  const dispach = useDispatch();
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    dispach(toolBarActions.onSearchTermChange(e.target.value));
+  }
+
+  function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    dispach(toolBarActions.onStatusTermChange(e.target.value));
+  }
+
+  function handlePriorityChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    dispach(toolBarActions.onPriorityTermChange(e.target.value));
+  }
+  function handleDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+    dispach(toolBarActions.onDateChange(e.target.value));
+  }
+
+  function handleOpenAddTaskModal() {
+    dispach(modalActions.openModal());
+  }
+  
+  
+  const statuses = ["PENDING", "COMPLETED", "NOT_STARTED"];
+  const priorities = ["LOW", "MEDIUM", "HIGH"];
+
   return (
     <div className="px-8 py-4 flex flex-col gap-4">
       {/* Top row */}
@@ -102,32 +151,66 @@ const TaskToolbar: React.FC = () => {
             type="text"
             placeholder="Search tasks..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            value={searchTerm}
+            onChange={handleSearchChange}
           />
         </div>
-        <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm px-5 py-2.5 rounded-xl font-semibold transition shadow-sm whitespace-nowrap">
+        <button 
+        onClick={handleOpenAddTaskModal}
+        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm px-5 py-2.5 rounded-xl font-semibold transition shadow-sm whitespace-nowrap">
           <FiPlus size={16} />
           New Task
         </button>
       </div>
 
       {/* Filter row */}
-      <div className="flex flex-wrap gap-2">
-        {["Status", "Priority"].map((label) => (
-          <button
-            key={label}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-medium transition"
+      <div className="flex flex-wrap gap-2 items-center">
+        {/* Status Dropdown */}
+        <div className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium transition">
+          <FiFilter size={13} className="text-slate-400" />
+          <select
+            value={statusTerm}
+            onChange={handleStatusChange}
+            className="bg-transparent outline-none text-slate-600 text-sm"
           >
-            <FiFilter size={13} className="text-slate-400" />
-            {label}
-          </button>
-        ))}
-        <button className="px-4 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-sm font-medium transition">
-          Sort: Deadline
-        </button>
+            <option value="">Status</option>
+            {statuses.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Priority Dropdown */}
+        <div className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-sm font-medium transition">
+          <FiFilter size={13} className="text-slate-400" />
+          <select
+            value={priorityTerm}
+            onChange={handlePriorityChange}
+            className="bg-transparent outline-none text-slate-600 text-sm"
+          >
+            <option value="">Priority</option>
+            {priorities.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Sort button */}
+        <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => handleDateChange(e)}
+            className="px-4 py-2 rounded-lg border border-slate-200 text-slate-600 text-sm"
+            />
       </div>
     </div>
   );
 };
+
 
 // ─── Task Card ─────────────────────────────────────────────────────────────────
 
@@ -144,7 +227,7 @@ const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
 };
 
 const TaskCard: React.FC<TaskCardProps> = ({
-  id, title, description, priority, status, dueDate,
+  task: { id, title, description, dueDate, priority, status },
   onStart, onComplete, onReopen, onEdit, onDelete,
 }) => {
   const pCfg = priorityConfig[priority];
@@ -209,41 +292,18 @@ const TaskCard: React.FC<TaskCardProps> = ({
 };
 
 // ─── Task Grid ─────────────────────────────────────────────────────────────────
+type TaskGridProps = {
+    userTasks: Task[],
+}
 
-function TaskGrid() {
-  const tasks: TaskCardProps[] = [
-    {
-      id: "1",
-      title: "Mobile responsive design",
-      description: "Ensure all pages are fully responsive on mobile devices",
-      priority: "HIGH",
-      status: "COMPLETED",
-      dueDate: "Feb 24, 2026",
-    },
-    {
-      id: "2",
-      title: "Design system refactor",
-      description: "Update design tokens and component variants for consistency",
-      priority: "HIGH",
-      status: "PENDING",
-      dueDate: "Feb 28, 2026",
-    },
-    {
-      id: "3",
-      title: "Database optimization",
-      description: "Add indexes and optimize queries for better performance",
-      priority: "MEDIUM",
-      status: "NOT_STARTED",
-      dueDate: "Mar 8, 2026",
-    },
-  ];
+function TaskGrid({userTasks}: TaskGridProps) {
 
   return (
     <div className="px-8 pb-10">
       <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">All Tasks</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tasks.map((task) => (
-          <TaskCard key={task.id} {...task} />
+        {userTasks.map((task) => (
+          <TaskCard key={task.id} task={task} />
         ))}
       </div>
     </div>
@@ -251,13 +311,94 @@ function TaskGrid() {
 }
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
+type RootState = {
+  user: {
+    user: User | null
+  }
+};
+
+type Task = {
+  id: number;
+  title: string;
+  description: string;
+  dueDate: string; // ISO date string from backend
+  priority: Priority;
+  status: Status;
+  userId: number;
+};
+type RootStateToken = {
+  token: {
+    token: string | null
+  }
+};
 
 function DashBoardPage() {
+  const user = useSelector((state : RootState) => state.user.user);
+  const token = useSelector((state: RootStateToken) => state.token.token);
+  const userId = user?.id;
+
+  const dispatch = useDispatch();
+
+  const searchTerm = useSelector((state: ToolBarRootState) => state.toolbar.searchTerm);
+  const statusTerm = useSelector((state: ToolBarRootState) => state.toolbar.statusTerm);
+  const priorityTerm = useSelector((state: ToolBarRootState) => state.toolbar.priorityTerm);
+  const selectedDate = useSelector((state: ToolBarRootState) => state.toolbar.selectedDate);
+  
+
+
+
+  const {data: userTasks = [], isLoading, error} = useQuery({
+    queryKey: ["tasks", userId],
+    queryFn: () => getUserTask(userId, token),
+    enabled: !!userId,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  useEffect(() => {
+    if (error instanceof Error && error.message === "Unauthorized") {
+        dispatch(tokenActions.onLogOut());
+    }
+    }, [error, dispatch]);
+
+  const filteredTasks = userTasks.filter(task => {
+  // Search filter
+  const matchesSearch =
+    task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    task.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+  // Status filter
+  const matchesStatus = statusTerm ? task.status === statusTerm : true;
+
+  // Priority filter
+  const matchesPriority = priorityTerm ? task.priority === priorityTerm : true;
+
+  // Date filter
+  const taskDate = new Date(task.dueDate);
+  const today = new Date();
+  const matchesFuture = taskDate >= today; // ignore past tasks
+
+  const matchesSelectedDate = selectedDate
+    ? taskDate >= new Date(selectedDate) // only tasks from selected date onward
+    : true;
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesFuture && matchesSelectedDate;
+    })  
+    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()); // nearest date first
+
+  console.log(userTasks);
+  console.log(filteredTasks);
+  
+  {isLoading && <p>Loading...</p>}
+
+
   return (
     <div className="bg-slate-50 min-h-screen">
-      <DashboardSummary />
+      <Modal title="Add New Task">
+        <AddTask/>
+      </Modal>
+      <DashboardSummary userTasks={filteredTasks}/>
       <TaskToolbar />
-      <TaskGrid />
+      <TaskGrid userTasks={filteredTasks}/>
     </div>
   );
 }

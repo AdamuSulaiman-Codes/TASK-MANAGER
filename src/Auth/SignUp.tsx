@@ -21,7 +21,7 @@ const SignUp = () => {
 
     const data = await signUp({userName, email, password})
 
-    dispatch(tokenActions.onLogin(data.accessToken));
+    dispatch(tokenActions.onLogin({token: data.accessToken, expiresIn: 86400000}));
     dispatch(userActions.onLogin(data.user));
 
     console.log(data.user);
