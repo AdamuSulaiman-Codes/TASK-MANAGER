@@ -36,3 +36,18 @@ export async function signUp(user : User) {
     const data : AuthResponse = await response.json();
     return data;
 }
+
+export async function getCurrentUser(token: string) {
+  const response = await fetch("http://localhost:8080/api/auth/me", {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch user");
+  }
+
+  return response.json();
+}
