@@ -18,6 +18,7 @@ const modalSlice = createSlice({
     },
     closeModal(state) {
       state.isOpen = false;
+      console.log("closed");
     },
     toggleModal(state) {
       state.isOpen = !state.isOpen;

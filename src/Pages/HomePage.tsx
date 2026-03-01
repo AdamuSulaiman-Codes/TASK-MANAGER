@@ -23,7 +23,7 @@ function HomePage() {
 
       try {
         const user = await getCurrentUser(token);
-        
+
         dispatch(userActions.setUser(user));
         dispatch(tokenActions.onLogin({
           token,

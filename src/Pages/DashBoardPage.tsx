@@ -350,8 +350,8 @@ function DashBoardPage() {
   const {data: userTasks = [], isLoading, error} = useQuery({
     queryKey: ["tasks", userId],
     queryFn: () => getUserTask(userId, token),
-    enabled: !!userId,
-    staleTime: 1000 * 60 * 5,
+    // enabled: !!userId,
+    // staleTime: 1000 * 60 * 5,
   });
 
   useEffect(() => {

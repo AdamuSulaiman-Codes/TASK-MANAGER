@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import type { User } from "../Auth/authData";
 import { useDispatch, useSelector } from "react-redux";
-import { addUserTask, type NewTask, type Task } from "../Pages/backendFunctions";
+import { addUserTask, type NewTask } from "../Pages/backendFunctions";
 import { modalActions } from "../Store/ModalSlice";
+import { QueryClient } from "@tanstack/react-query";
 
 type TaskPayload = {
   title: string;
@@ -28,6 +29,8 @@ function AddTask() {
     userId: 0,
   });
 
+  const queryClient = new QueryClient();
+
   const user = useSelector((state : RootState) => state.user.user);
   const userId = user?.id;
   const dispatch = useDispatch();
@@ -52,10 +55,11 @@ function AddTask() {
       dueDate: formData.dueDate,
       status: formData.status,
       priority: formData.priority,
-      userId: formData.userId,
+      userId: userId as number,
     };
 
     await addUserTask(userId, localStorage.getItem("token"), task);
+    await queryClient.refetchQueries({ queryKey: ["tasks"] });
     dispatch(modalActions.closeModal());
 
 
