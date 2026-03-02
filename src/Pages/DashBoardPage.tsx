@@ -1,14 +1,16 @@
 import { FiSearch, FiPlus, FiFilter, FiCheckCircle, FiClock, FiCircle, FiLayers } from "react-icons/fi";
 import type { User } from "../Auth/authData";
 import { useDispatch, useSelector } from "react-redux";
-import { getUserTask, type Priority, type Status } from "./backendFunctions";
-import { useQuery } from "@tanstack/react-query";
+import { deleteUserTask, getUserTask, updateUserTask, type Priority, type Status } from "./backendFunctions";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toolBarActions } from "../Store/ToolBarSlice";
 import { modalActions } from "../Store/ModalSlice";
 import Modal from "../assets/Modal";
 import AddTask from "../Components/AddTask";
 import { tokenActions } from "../Store/TokenSlice";
 import { useEffect } from "react";
+import DeleteConfirmation from "../Components/DeleteConfirmation";
+import EditTask from "../Components/EditTask";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -134,7 +136,7 @@ const TaskToolbar: React.FC = () => {
   }
 
   function handleOpenAddTaskModal() {
-    dispach(modalActions.openModal());
+    dispach(modalActions.openModal(<AddTask/>));
   }
   
   
@@ -228,15 +230,58 @@ const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
 
 const TaskCard: React.FC<TaskCardProps> = ({
   task: { id, title, description, dueDate, priority, status },
-  onStart, onComplete, onReopen, onEdit, onDelete,
 }) => {
   const pCfg = priorityConfig[priority];
   const sCfg = statusConfig[status];
 
+  const queryClient = useQueryClient();
+  const dispatch = useDispatch();
+
+  function handldeOpenDeleteModal() {
+    // open delete confirmation modal
+    dispatch(modalActions.openModal(
+      <DeleteConfirmation
+        isOpen={true}
+        onConfirm={async() => {
+            await deleteUserTask(id, localStorage.getItem("token"));
+            await queryClient.refetchQueries({ queryKey: ["tasks"] });
+            dispatch(modalActions.closeModal());
+        } }
+        onCancel={() => dispatch(modalActions.closeModal())}
+      />
+    ));
+  }
+
+  function handleOpenEditModal() {
+    // open edit task modal (can reuse AddTask component with pre-filled data)
+
+    const task: Task = {
+        id,
+        title,
+        description,
+        dueDate,
+        priority,
+        status,
+        userId: id // or pass it from your TaskCard props
+    };
+    
+    dispatch(modalActions.openModal(
+      <EditTask 
+      task={task} 
+      taskId={id} 
+      onSave={async() => {
+        await updateUserTask(id, localStorage.getItem("token"), task);
+        await queryClient.refetchQueries({ queryKey: ["tasks"] });
+        dispatch(modalActions.closeModal());
+      }}
+      />
+    ));
+  }
+
   const primaryAction =
-    status === "COMPLETED" ? { label: "Reopen",   handler: () => onReopen?.(id) } :
-    status === "PENDING"   ? { label: "Complete",  handler: () => onComplete?.(id) } :
-                             { label: "Start",     handler: () => onStart?.(id) };
+    status === "COMPLETED" ? { label: "Reopen",   handler: () => {}} :
+    status === "PENDING"   ? { label: "Complete",  handler: () => {}} :
+                             { label: "Start",     handler: () => {}};
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-4 hover:shadow-md transition-shadow">
@@ -269,7 +314,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           {primaryAction.label}
         </button>
         <button
-          onClick={() => onEdit?.(id)}
+          onClick={handleOpenEditModal}
           className="p-2 rounded-lg text-amber-500 hover:bg-amber-50 transition"
           title="Edit"
         >
@@ -278,7 +323,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
           </svg>
         </button>
         <button
-          onClick={() => onDelete?.(id)}
+          onClick={handldeOpenDeleteModal}
           className="p-2 rounded-lg text-red-400 hover:bg-red-50 transition"
           title="Delete"
         >
@@ -350,8 +395,8 @@ function DashBoardPage() {
   const {data: userTasks = [], isLoading, error} = useQuery({
     queryKey: ["tasks", userId],
     queryFn: () => getUserTask(userId, token),
-    enabled: !!userId,
-    staleTime: 1000 * 60 * 5,
+    // enabled: !!userId,
+    // staleTime: 1000 * 60 * 5,
   });
 
   useEffect(() => {
@@ -393,9 +438,7 @@ function DashBoardPage() {
 
   return (
     <div className="bg-slate-50 min-h-screen">
-      <Modal title="Add New Task">
-        <AddTask/>
-      </Modal>
+      <Modal/>
       <DashboardSummary userTasks={filteredTasks}/>
       <TaskToolbar />
       <TaskGrid userTasks={filteredTasks}/>

@@ -56,3 +56,35 @@ export async function addUserTask(userID: any, token: string | null, task: NewTa
 
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);    
 }
+
+export async function deleteUserTask(taskID: number, token: string | null) {
+    const response = await fetch(`http://localhost:8080/api/task/delete-user-task/${taskID}`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        }
+    });
+
+    if (response.status === 401) {
+        throw new Error("Unauthorized");
+    }
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);    
+}
+export async function updateUserTask(taskID: number, token: string | null, updatedTask: Partial<NewTask>) {
+    const response = await fetch(`http://localhost:8080/api/task/update-user-task/${taskID}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(updatedTask)
+    });
+
+    if (response.status === 401) {
+        throw new Error("Unauthorized");
+    }
+
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);    
+}   

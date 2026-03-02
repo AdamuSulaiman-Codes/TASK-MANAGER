@@ -1,83 +1,82 @@
-import React, { useState } from "react";
-import type { User } from "../Auth/authData";
-import { useDispatch, useSelector } from "react-redux";
-import { addUserTask, type NewTask } from "../Pages/backendFunctions";
+import React, { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { updateUserTask, type Task } from "../Pages/backendFunctions";
 import { modalActions } from "../Store/ModalSlice";
 import { QueryClient } from "@tanstack/react-query";
 
-type TaskPayload = {
-  title: string;
-  description: string;
-  dueDate: string;
-  priority: "LOW" | "MEDIUM" | "HIGH";
-  status: "PENDING" | "NOT_STARTED" | "COMPLETED";
-  userId: number;
-};
-type RootState = {
-  user: {
-    user: User | null
-  }
+
+
+type EditTaskProps = {
+  task: Task; // the task to edit
+  taskId: number; // the ID of the task to edit
+  onSave: () => void; // callback to refresh task list after saving
 };
 
-function AddTask() {
-  const [formData, setFormData] = useState<TaskPayload>({
+function EditTask({ task, taskId, onSave }: EditTaskProps) {
+  const [formData, setFormData] = useState({
     title: "",
     description: "",
     dueDate: "",
-    priority: "MEDIUM",
-    status: "PENDING",
-    userId: 0,
+    priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH",
+    status: "PENDING" as "PENDING" | "NOT_STARTED" | "COMPLETED",
   });
 
   const queryClient = new QueryClient();
-
-  const user = useSelector((state : RootState) => state.user.user);
-  const userId = user?.id;
+ 
   const dispatch = useDispatch();
+
+  // Pre-fill form when task prop changes
+  useEffect(() => {
+    if (task) {
+      setFormData({
+        title: task.title,
+        description: task.description,
+        dueDate: task.dueDate,
+        priority: task.priority,
+        status: task.status,
+      });
+    }
+  }, [task]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === "userId" ? userId : value,
-    }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const task : NewTask = {    
+    if (!taskId) return;
+
+    const updatedTask = {
+      ...task,
       title: formData.title,
       description: formData.description,
-      dueDate: formData.dueDate,
-      status: formData.status,
+      dueDate: formData.dueDate,       // ok if "yyyy-MM-dd"
       priority: formData.priority,
-      userId: userId as number,
+      status: formData.status,
+      userId: task.userId,             // ⚠️ MUST be the real userId
     };
 
-    await addUserTask(userId, localStorage.getItem("token"), task);
+    await updateUserTask(taskId, localStorage.getItem("token"), updatedTask);
     await queryClient.refetchQueries({ queryKey: ["tasks"] });
     dispatch(modalActions.closeModal());
-
-
   };
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded-xl">
-      <h2 className="text-xl font-semibold mb-4">Add New Task</h2>
+      <h2 className="text-xl font-semibold mb-4">Edit Task</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-
         {/* Title */}
         <div>
           <label className="block text-sm font-medium">Title</label>
           <input
             type="text"
             name="title"
-            value={formData.title}
+            value={formData.title || ""}
             onChange={handleChange}
             className="w-full border rounded-md p-2"
             required
@@ -89,7 +88,7 @@ function AddTask() {
           <label className="block text-sm font-medium">Description</label>
           <textarea
             name="description"
-            value={formData.description}
+            value={formData.description || ""}
             onChange={handleChange}
             className="w-full border rounded-md p-2"
             required
@@ -102,7 +101,7 @@ function AddTask() {
           <input
             type="date"
             name="dueDate"
-            value={formData.dueDate}
+            value={formData.dueDate || ""}
             onChange={handleChange}
             className="w-full border rounded-md p-2"
             required
@@ -114,7 +113,7 @@ function AddTask() {
           <label className="block text-sm font-medium">Priority</label>
           <select
             name="priority"
-            value={formData.priority}
+            value={formData.priority || "MEDIUM"}
             onChange={handleChange}
             className="w-full border rounded-md p-2"
           >
@@ -129,7 +128,7 @@ function AddTask() {
           <label className="block text-sm font-medium">Status</label>
           <select
             name="status"
-            value={formData.status}
+            value={formData.status || "PENDING"}
             onChange={handleChange}
             className="w-full border rounded-md p-2"
           >
@@ -138,15 +137,17 @@ function AddTask() {
             <option value="COMPLETED">COMPLETED</option>
           </select>
         </div>
+
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
+          className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700"
+          onClick={onSave}
         >
-          Create Task
+          Save Changes
         </button>
       </form>
     </div>
   );
 }
 
-export default AddTask;
+export default EditTask;
